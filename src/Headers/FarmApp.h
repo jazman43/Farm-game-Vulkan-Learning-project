@@ -29,7 +29,7 @@ private:
     VkSurfaceKHR surface;
 
 
-
+    VkRenderPass renderPass;
     VkSwapchainKHR swapChain;
     VkFormat swapChainImageFromat;
     VkExtent2D swapChainExtent;
@@ -79,5 +79,7 @@ private:
 
 
     void CreateImageViews();
+
+    void CreateRenderPass();
 };
 

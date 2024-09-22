@@ -131,6 +131,8 @@ void FarmApp::InitVulkan()
 
     CreateImageViews();
 
+    CreateRenderPass();
+
 }
 
 void FarmApp::CreateSwapChain()
@@ -218,12 +220,16 @@ void FarmApp::MainLoop()
 void FarmApp::CleanUp()
 {
     vkDestroySwapchainKHR(device, swapChain, nullptr);
-    vkDestroyDevice(device, nullptr);  
+      
     for(auto imageView : swapChainImageViews)
     {
         vkDestroyImageView(device, imageView, nullptr);
     }
     
+    vkDestroyRenderPass(device, renderPass, nullptr);
+
+    
+    vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);
     
     
@@ -366,5 +372,49 @@ void FarmApp::CreateImageViews()
         {
             std::cout << "Image View: " << i << " is created!!\n";
         }
+    }
+}
+
+
+void FarmApp::CreateRenderPass()
+{
+    VkAttachmentDescription colorAttachment{};
+
+    colorAttachment.format = swapChainImageFromat;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; //no multisampling 
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+
+    VkSubpassDescription subPass{};
+    subPass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subPass.colorAttachmentCount = 1;
+    subPass.pColorAttachments = &colorAttachmentRef;
+
+
+    VkRenderPassCreateInfo renderPassInfo{};
+
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subPass;
+
+
+    if(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass))
+    {
+        std::cerr << "Failed to create render pass!!\n";
+    }else
+    {
+        std::cout << "render pass created!!\n";
     }
 }
