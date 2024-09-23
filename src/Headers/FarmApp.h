@@ -8,6 +8,9 @@
 #include <vector>
 #include <optional>
 #include <set>
+#include <sstream>
+#include <fstream>
+
 
 struct SwapChainSupportDetails
 {
@@ -81,5 +84,25 @@ private:
     void CreateImageViews();
 
     void CreateRenderPass();
+
+//shaders
+private:
+
+    std::vector<char> ReadFile(const std::string& fileName);
+
+    VkShaderModule CreateShaderModule(const std::vector<char>& code);
+
+    void CreateGraphicsPipline();
+
+    std::vector<char> fragGenShaderCode = ReadFile("/media/jared/progets/vulkan projects/Project Farm/build/Bin/Shaders/frag_gen_shader.spv");
+    std::vector<char> vertGenShaderCode = ReadFile("/media/jared/progets/vulkan projects/Project Farm/build/Bin/Shaders/vert_gen_shader.spv");
+
+    VkShaderModule fragShaderModule = CreateShaderModule(fragGenShaderCode);
+    VkShaderModule vertShaderModule = CreateShaderModule(vertGenShaderCode);
+
+
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
+
 };
 

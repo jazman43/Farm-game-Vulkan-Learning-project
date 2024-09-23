@@ -108,6 +108,8 @@ Project_Farm_EXTERNAL_OBJECTS =
 Project_Farm: CMakeFiles/Project_Farm.dir/src/FarmApp.cpp.o
 Project_Farm: CMakeFiles/Project_Farm.dir/src/main.cpp.o
 Project_Farm: CMakeFiles/Project_Farm.dir/build.make
+Project_Farm: /usr/lib/x86_64-linux-gnu/libglfw.so.3.3
+Project_Farm: /usr/lib/x86_64-linux-gnu/libvulkan.so
 Project_Farm: CMakeFiles/Project_Farm.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/media/jared/progets/vulkan projects/Project Farm/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable Project_Farm"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Project_Farm.dir/link.txt --verbose=$(VERBOSE)

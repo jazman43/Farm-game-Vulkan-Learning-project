@@ -149,6 +149,19 @@ Project_Farm/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Project_Farm.dir/build.make CMakeFiles/Project_Farm.dir/build
 .PHONY : Project_Farm/fast
 
+#=============================================================================
+# Target rules for targets named Shaders
+
+# Build rule for target.
+Shaders: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 Shaders
+.PHONY : Shaders
+
+# fast build rule for target.
+Shaders/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Shaders.dir/build.make CMakeFiles/Shaders.dir/build
+.PHONY : Shaders/fast
+
 src/FarmApp.o: src/FarmApp.cpp.o
 .PHONY : src/FarmApp.o
 
@@ -207,6 +220,7 @@ help:
 	@echo "... package"
 	@echo "... package_source"
 	@echo "... rebuild_cache"
+	@echo "... Shaders"
 	@echo "... Project_Farm"
 	@echo "... src/FarmApp.o"
 	@echo "... src/FarmApp.i"

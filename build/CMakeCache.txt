@@ -286,6 +286,21 @@ Project_Farm_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 Project_Farm_SOURCE_DIR:STATIC=/media/jared/progets/vulkan projects/Project Farm
 
+//Path to a program.
+Vulkan_GLSLANG_VALIDATOR_EXECUTABLE:FILEPATH=/bin/glslangValidator
+
+//Path to a program.
+Vulkan_GLSLC_EXECUTABLE:FILEPATH=Vulkan_GLSLC_EXECUTABLE-NOTFOUND
+
+//Path to a file.
+Vulkan_INCLUDE_DIR:PATH=/usr/include
+
+//Path to a library.
+Vulkan_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libvulkan.so
+
+//The directory containing a CMake configuration file for glfw3.
+glfw3_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/glfw3
+
 
 ########################
 # INTERNAL cache entries
@@ -357,6 +372,8 @@ CMAKE_EXE_LINKER_FLAGS_MINSIZEREL-ADVANCED:INTERNAL=1
 CMAKE_EXE_LINKER_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO
 CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_EXPORT_COMPILE_COMMANDS
+CMAKE_EXPORT_COMPILE_COMMANDS-ADVANCED:INTERNAL=1
 //Name of external makefile project generator.
 CMAKE_EXTRA_GENERATOR:INTERNAL=
 //Name of generator.
@@ -466,6 +483,16 @@ CPACK_SOURCE_TXZ-ADVANCED:INTERNAL=1
 CPACK_SOURCE_TZ-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CPACK_SOURCE_ZIP
 CPACK_SOURCE_ZIP-ADVANCED:INTERNAL=1
+//Details about finding Vulkan
+FIND_PACKAGE_MESSAGE_DETAILS_Vulkan:INTERNAL=[/usr/lib/x86_64-linux-gnu/libvulkan.so][/usr/include][cfound components: glslangValidator missing components: glslc][v1.3.275()]
+//ADVANCED property for variable: Vulkan_GLSLANG_VALIDATOR_EXECUTABLE
+Vulkan_GLSLANG_VALIDATOR_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Vulkan_GLSLC_EXECUTABLE
+Vulkan_GLSLC_EXECUTABLE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Vulkan_INCLUDE_DIR
+Vulkan_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Vulkan_LIBRARY
+Vulkan_LIBRARY-ADVANCED:INTERNAL=1
 //linker supports push/pop state
 _CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
 
