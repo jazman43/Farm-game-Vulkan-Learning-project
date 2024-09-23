@@ -1,6 +1,0 @@
-/media/jared/progets/vulkan projects/Project Farm/build/CMakeFiles/Project_Farm.dir
-/media/jared/progets/vulkan projects/Project Farm/build/CMakeFiles/Shaders.dir
-/media/jared/progets/vulkan projects/Project Farm/build/CMakeFiles/package.dir
-/media/jared/progets/vulkan projects/Project Farm/build/CMakeFiles/package_source.dir
-/media/jared/progets/vulkan projects/Project Farm/build/CMakeFiles/edit_cache.dir
-/media/jared/progets/vulkan projects/Project Farm/build/CMakeFiles/rebuild_cache.dir
