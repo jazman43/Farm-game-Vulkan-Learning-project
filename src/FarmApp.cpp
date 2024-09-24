@@ -4,6 +4,9 @@
 
 
 
+
+
+
 void FarmApp::Run()
 {
     InitWindow();
@@ -40,11 +43,31 @@ void FarmApp::InitVulkan()
     uint32_t glfwExtensionCount  =0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
+    std::cout << "Required GLFW extensions: \n";
+    for (uint32_t i = 0; i < glfwExtensionCount; i++) 
+    {
+        std::cout << "\t" << glfwExtensions[i] << "\n";
+    }
+
+
+    const std::vector<const char*> validationLayers = {
+        "VK_LAYER_KHRONOS_validation"
+    };
+
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
     createInfo.enabledExtensionCount = glfwExtensionCount;
     createInfo.ppEnabledExtensionNames = glfwExtensions;
+    
+
+    if (false) //how do check in order to change this?
+    {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    } else {
+        createInfo.enabledLayerCount = 0;
+    }
 
 
     if(vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
@@ -102,6 +125,8 @@ void FarmApp::InitVulkan()
     float queuePriority = 1.0f;
     queueCreateInfo.pQueuePriorities = &queuePriority;
 
+
+
     VkDeviceCreateInfo deviceCreateInfo{};
 
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -118,7 +143,7 @@ void FarmApp::InitVulkan()
     {
         std::cout << "Logical Device Created!\n";
     }
-
+    
     
     if (!isDeviceSuitable(physicalDevice)) {
         std::cerr << "Physical device doesn't support required extensions!\n" ;
@@ -127,6 +152,13 @@ void FarmApp::InitVulkan()
         std::cout << "Physical device supports required extenstions!!\n";
     }
     
+    indices = FindQueueFamilies();
+
+    // Retrieve graphics queue
+    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+    
+    // Retrieve present queue
+    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 
     CreateSwapChain();
 
@@ -135,6 +167,14 @@ void FarmApp::InitVulkan()
     CreateRenderPass();
 
     CreateGraphicsPipline();
+
+    CreateFrameBuffers();
+
+    CreateCommandPool();
+
+    CreateCommandBuffers();
+
+    InitSyncIbjects();
 
 }
 
@@ -167,9 +207,9 @@ void FarmApp::CreateSwapChain()
     swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 
-    uint32_t queueFamilyIndices[] = {graphicsFamily, presentFamily};
+    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
-    if(graphicsFamily != presentFamily)
+    if(indices.graphicsFamily != indices.presentFamily)
     {
         swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         swapChainCreateInfo.queueFamilyIndexCount  = 2;
@@ -211,6 +251,7 @@ void FarmApp::MainLoop()
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
+        DrawFrame();
     }
     
     
@@ -234,8 +275,19 @@ void FarmApp::CleanUp()
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-    
 
+    vkDestroyShaderModule(device, vertShaderModule, nullptr);
+    vkDestroyShaderModule(device, fragShaderModule, nullptr);
+
+    vkDestroyCommandPool(device, commandPool, nullptr);
+    
+    for (auto framebuffer : swapChainFramebuffers)
+    {
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    }
+
+    vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
+    vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
     
     vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);
@@ -253,7 +305,46 @@ void FarmApp::CleanUp()
 
 ///
 
+QueueFamilyIndices FarmApp::FindQueueFamilies()
+{
+    QueueFamilyIndices indices;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount,nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+    int i = 0;
+    for(const auto& queueFamily : queueFamilies)
+    {
+        if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            indices.graphicsFamily = i;
+        }
+
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
+
+        if(presentSupport)
+        {
+            indices.presentFamily = i;
+        }
+
+        if(indices.isComplete())
+        {
+            break;
+        }
+
+        i++;
+
+    }
+
+    return indices;
+}
+
 SwapChainSupportDetails FarmApp::querySwapChainSupport(VkPhysicalDevice PHdevice)
+
 {
     SwapChainSupportDetails details;
 
@@ -474,6 +565,13 @@ VkShaderModule FarmApp::CreateShaderModule(const std::vector<char> &code)
 
 void FarmApp::CreateGraphicsPipline()
 {
+    auto fragGenShaderCode = ReadFile("/media/jared/progets/vulkan_projects/Project_Farm/build/Bin/Shaders/frag_gen_shader.spv");
+    auto vertGenShaderCode = ReadFile("/media/jared/progets/vulkan_projects/Project_Farm/build/Bin/Shaders/vert_gen_shader.spv");
+
+
+    fragShaderModule = CreateShaderModule(fragGenShaderCode);
+    vertShaderModule = CreateShaderModule(vertGenShaderCode); 
+    
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 
@@ -593,6 +691,215 @@ void FarmApp::CreateGraphicsPipline()
         std::cout << "Graphics Pipeline Created!!\n";
     }
 
-    vkDestroyShaderModule(device, vertShaderModule, nullptr);
-    vkDestroyShaderModule(device, fragShaderModule, nullptr);
+    
+        
+}
+
+void FarmApp::CreateFrameBuffers()
+{
+    swapChainFramebuffers.resize(swapChainImageViews.size());
+
+    for(size_t i = 0; i < swapChainImageViews.size(); i++)
+    {
+        VkImageView attachments[] = {
+            swapChainImageViews[i]
+        };
+
+        VkFramebufferCreateInfo frameBufferInfo{};
+        frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        frameBufferInfo.renderPass = renderPass;
+        frameBufferInfo.attachmentCount = 1;
+        frameBufferInfo.pAttachments = attachments;
+        frameBufferInfo.width = swapChainExtent.width;
+        frameBufferInfo.height = swapChainExtent.height;
+        frameBufferInfo.layers = 1;
+
+
+        if(vkCreateFramebuffer(device, &frameBufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
+        {
+            std::cerr << "failed to create frame buffer!: " << i << "\n";
+        }
+        else 
+        {
+            std::cout << "Frame Buffer: " << i << " created!!\n";
+        }
+    }
+}
+
+void FarmApp::CreateCommandPool()
+{
+
+    VkCommandPoolCreateInfo poolInfo{};
+
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; 
+
+    if(vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+    {
+        std::cerr  << "Failed to Create Command pool!!\n";
+    }
+    else
+    {
+        std::cout << "Command Pool Created!!!\n";
+    }
+
+}
+
+void FarmApp::CreateCommandBuffers()
+{
+
+    commandBuffers.resize(swapChainFramebuffers.size());
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = commandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+
+    if(vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
+    {
+        std::cerr << "Failed to allocate command buffer\n";
+    }
+    else
+    {
+        std::cout << "Command Buffers allocated\n";
+    }
+
+
+    for(size_t i = 0; i < commandBuffers.size(); i++)
+    {
+        
+
+        VkCommandBufferBeginInfo beginInfo{};
+
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        if(vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS)
+        {
+            std::cerr << "Failed to begin recording command buffers\n";
+        }else
+        {
+            std::cout << "command buffers begin recording\n";
+        }
+
+        VkRenderPassBeginInfo renderPassInfo{};
+
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = swapChainFramebuffers[i];
+        renderPassInfo.renderArea.offset = {0,0};
+        renderPassInfo.renderArea.extent = swapChainExtent;
+
+        VkClearValue clearColor = {{0.0f, 0.0f, 0.0f, 1.0f}};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+
+        vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+        vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+
+        vkCmdEndRenderPass(commandBuffers[i]);
+
+        if(vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS)
+        {
+            std::cerr << "Failed to record command buffer! " << i << "\n";
+            return;
+        }else
+        {
+            std::cout << "command buffer recorded! " << i << "\n";
+        }
+    }
+}
+
+void FarmApp::InitSyncIbjects()
+{
+    VkSemaphoreCreateInfo semaphoreInfo{};
+
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    if(vkCreateSemaphore(device,  &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS 
+    || vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS)
+    {
+        std::cerr << "Failed to Create semaphores!\n";
+    }else 
+    {
+        std::cout << "Created semaphores!!\n";
+    }
+
+    VkFenceCreateInfo fenceInfo{};
+
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    if(vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS)
+    {
+        std::cerr << "Failed to create fence!\n";
+    }
+    else
+    {
+        std::cout << "fence created!!\n";
+    }
+}
+
+void FarmApp::DrawFrame()
+{
+    vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &inFlightFence);
+
+    uint32_t imageIndex;
+
+    VkResult acquireResult = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+    if(acquireResult != VK_SUCCESS)
+    {
+        std::cerr << "Failed to acquire swap chain image! Error: " << acquireResult << "\n";
+        return;
+    }else
+    {
+        std::cout << "Next image Acquired\n";
+    }
+
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+    VkPipelineStageFlags waitStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStage;
+
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+
+    VkSemaphore signalSemaphore[] = {renderFinishedSemaphore};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphore;
+
+    VkResult result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence);
+
+    if(result != VK_SUCCESS)
+    {
+        std::cerr << "Failed to submit draw Command buffer!! " << result << "\n";
+    }else
+    {
+        std::cout << "draw buffer submitted!!\n";
+    }
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphore;
+
+    VkSwapchainKHR swapChains[] = {swapChain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+
+    vkQueuePresentKHR(presentQueue,  &presentInfo);
 }

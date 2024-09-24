@@ -19,6 +19,15 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct QueueFamilyIndices{
+    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
+
+    bool isComplete()
+    {
+        return graphicsFamily.has_value() && presentFamily.has_value();
+    }
+};
 
 
 class FarmApp
@@ -57,13 +66,16 @@ private:
     void CleanUp();
 
 private:
-    uint32_t graphicsFamily;
-    uint32_t presentFamily;
+    VkQueue graphicsQueue;
+    VkQueue presentQueue;
+
+    QueueFamilyIndices indices;
 
     const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
+    QueueFamilyIndices FindQueueFamilies();
 
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkImage> swapChainImages;
@@ -87,22 +99,42 @@ private:
 
 //shaders
 private:
+    VkShaderModule fragShaderModule;
+    VkShaderModule vertShaderModule;
 
     std::vector<char> ReadFile(const std::string& fileName);
 
     VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
-    void CreateGraphicsPipline();
-
-    std::vector<char> fragGenShaderCode = ReadFile("/media/jared/progets/vulkan projects/Project Farm/build/Bin/Shaders/frag_gen_shader.spv");
-    std::vector<char> vertGenShaderCode = ReadFile("/media/jared/progets/vulkan projects/Project Farm/build/Bin/Shaders/vert_gen_shader.spv");
-
-    VkShaderModule fragShaderModule = CreateShaderModule(fragGenShaderCode);
-    VkShaderModule vertShaderModule = CreateShaderModule(vertGenShaderCode);
+    void CreateGraphicsPipline();   
 
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
+
+//frame buffers
+private:
+
+    VkCommandPool commandPool;
+
+    std::vector<VkCommandBuffer> commandBuffers;
+
+    std::vector<VkFramebuffer> swapChainFramebuffers;
+
+    void CreateFrameBuffers();
+
+    void CreateCommandPool();
+
+    void CreateCommandBuffers();
+
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
+
+    VkFence inFlightFence;
+
+    void InitSyncIbjects();
+
+    void DrawFrame();
 
 };
 
