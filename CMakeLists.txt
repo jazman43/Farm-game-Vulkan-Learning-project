@@ -23,6 +23,8 @@ if(NOT Vulkan_GLSLANG_VALIDATOR_EXECUTABLE)
     message(FATAL_ERROR "glslangValidator not found! Make sure it's installed and available in your PATH.")
 endif()
 
+message("glslangValidator found at: ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}")
+
 # Define directories for shaders
 set(SHADER_SRC_DIR "${PROJECT_SOURCE_DIR}/src/Shaders")
 set(SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/Bin/Shaders")
@@ -77,6 +79,8 @@ foreach(SHADER ${GLSL_SHADERS})
     #list(APPEND SPIRV_SHADERS ${SPIRV_OUTPUT})
 endforeach()
 
+message("Compiling shader stage: ${SHADER_STAGE}")
+message("SPIR-V output: ${SPIRV_OUTPUT}")
 # Add shaders as a custom target
 add_custom_target(Shaders ALL DEPENDS ${SPIRV_SHADERS})
 

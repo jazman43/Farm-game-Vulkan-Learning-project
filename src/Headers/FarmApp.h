@@ -2,6 +2,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 
 
 #include <iostream>
@@ -10,7 +11,18 @@
 #include <set>
 #include <sstream>
 #include <fstream>
+#include <string.h>
+#include <array>
 
+
+
+#ifdef NDEBUG
+const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
+
+const int MAX_FRAMES_IN_FLIGHT = 2;
 
 struct SwapChainSupportDetails
 {
@@ -27,6 +39,12 @@ struct QueueFamilyIndices{
     {
         return graphicsFamily.has_value() && presentFamily.has_value();
     }
+};
+
+
+struct Vertex {
+    glm::vec3 position;
+    glm::vec3 color;    
 };
 
 
@@ -56,7 +74,9 @@ private:
 
     void InitWindow();
     void InitVulkan();
+    void InitValidationLayers();
 
+    bool CheckValidationLayerSupport(const std::vector<const char*>& validationLayers);
 
     void CreateSwapChain();
     
@@ -127,14 +147,42 @@ private:
 
     void CreateCommandBuffers();
 
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
 
-    VkFence inFlightFence;
+    uint32_t currentFrame = 0;
+
+    std::vector<VkFence> inFlightFences;
+
+    void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
     void InitSyncIbjects();
 
     void DrawFrame();
+
+    void CreateVertexBuffer();
+
+
+    //vertext buffers
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+
+    void CreateBuffer(VkDevice device,
+                     VkPhysicalDevice physicalDevice,
+                     VkDeviceSize size, 
+                     VkBufferUsageFlags usage,
+                     VkMemoryPropertyFlags properties, 
+                     VkBuffer& buffer,
+                     VkDeviceMemory& bufferMemory);
+
+    uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+    void CopyBuffer(VkDevice device,
+                    VkCommandPool commandPool, 
+                    VkQueue graphicsQueue,
+                    VkBuffer srcBuffer, 
+                    VkBuffer dstBuffer, 
+                    VkDeviceSize size);
 
 };
 
