@@ -48,7 +48,8 @@
         "typeinfo": "cpp",
         "set": "cpp",
         "fstream": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "cstring": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }

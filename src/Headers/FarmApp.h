@@ -1,188 +1,55 @@
 #pragma once
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
+
+
 #include <glm/glm.hpp>
 
 
 #include <iostream>
-#include <vector>
-#include <optional>
-#include <set>
-#include <sstream>
-#include <fstream>
+#include <memory>
 #include <string.h>
 #include <array>
 
+#include "devices.h"
+#include "pipeline.h"
+#include "window.h"
+#include "swapChain.h"
 
 
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
-struct SwapChainSupportDetails
-{
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
-struct QueueFamilyIndices{
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete()
-    {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
 
 
-struct Vertex {
-    glm::vec3 position;
-    glm::vec3 color;    
-};
 
 
 class FarmApp
 {
 public:
+    FarmApp();
+
+    FarmApp(const FarmApp &) = delete;
+    FarmApp &operator=(const FarmApp &) = delete;
+
+    ~FarmApp();
+
     void Run();
 
 private:
-    GLFWwindow* window;
-    VkInstance instance;
-    VkSurfaceKHR surface;
-
-
-    VkRenderPass renderPass;
-    VkSwapchainKHR swapChain;
-    VkFormat swapChainImageFromat;
-    VkExtent2D swapChainExtent;
-    
-    VkDevice device;
-    VkPhysicalDevice physicalDevice;
-
-
-    int windowWidth = 1920;
-    int windowHeight = 1080;
-    std::string title = "Farming sim Project";
-
-    void InitWindow();
-    void InitVulkan();
-    void InitValidationLayers();
-
-    bool CheckValidationLayerSupport(const std::vector<const char*>& validationLayers);
-
-    void CreateSwapChain();
-    
-
-    void MainLoop();
-
-    void CleanUp();
-
-private:
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-
-    QueueFamilyIndices indices;
-
-    const std::vector<const char*> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
-
-    QueueFamilyIndices FindQueueFamilies();
-
-    std::vector<VkImageView> swapChainImageViews;
-    std::vector<VkImage> swapChainImages;
-    
-private:
-   
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice PHdevice);
-
-    VkSurfaceFormatKHR ChooseSwapChainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-
-    VkPresentModeKHR ChooseSwapChainPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
-
-    VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilitys);
-
-    bool isDeviceSuitable(VkPhysicalDevice device);
-
-
-    void CreateImageViews();
-
-    void CreateRenderPass();
-
-//shaders
-private:
-    VkShaderModule fragShaderModule;
-    VkShaderModule vertShaderModule;
-
-    std::vector<char> ReadFile(const std::string& fileName);
-
-    VkShaderModule CreateShaderModule(const std::vector<char>& code);
-
-    void CreateGraphicsPipline();   
-
+    //create our glfw window
+    Window window;
+    //create device
+    Device device{window};
+    //create swap chain
+    SwapChain swapChain{device, window.GetExtent()};
+    //pipeline 
+    std::unique_ptr<Pipeline> pipeline;
 
     VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
-
-//frame buffers
-private:
-
-    VkCommandPool commandPool;
-
     std::vector<VkCommandBuffer> commandBuffers;
-
-    std::vector<VkFramebuffer> swapChainFramebuffers;
-
-    void CreateFrameBuffers();
-
-    void CreateCommandPool();
-
-    void CreateCommandBuffers();
-
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-
-    uint32_t currentFrame = 0;
-
-    std::vector<VkFence> inFlightFences;
-
-    void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-
-    void InitSyncIbjects();
+   
+    void CreatePipelineLayout();
+    void CreatePipline();
+    void CreateCommandBuffers();   
 
     void DrawFrame();
 
-    void CreateVertexBuffer();
-
-
-    //vertext buffers
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-
-    void CreateBuffer(VkDevice device,
-                     VkPhysicalDevice physicalDevice,
-                     VkDeviceSize size, 
-                     VkBufferUsageFlags usage,
-                     VkMemoryPropertyFlags properties, 
-                     VkBuffer& buffer,
-                     VkDeviceMemory& bufferMemory);
-
-    uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
-    void CopyBuffer(VkDevice device,
-                    VkCommandPool commandPool, 
-                    VkQueue graphicsQueue,
-                    VkBuffer srcBuffer, 
-                    VkBuffer dstBuffer, 
-                    VkDeviceSize size);
-
+   
 };
 
