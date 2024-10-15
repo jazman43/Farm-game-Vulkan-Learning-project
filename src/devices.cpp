@@ -1,5 +1,5 @@
 #include "Headers/devices.h"
-#include "Headers/FarmApp.h"
+
 
 
 
@@ -10,10 +10,14 @@ Device::Device(Window &window) : window(window)
     PickPhysicalDevice();
     CreateLogicalDevice();
     CreateCommandPool();
+    CreateVertexBuffer();
 }
 
 Device::~Device()
 {
+    vkDestroyBuffer(device, vertexBuffer, nullptr);
+    vkFreeMemory(device, vertexBufferMemory, nullptr);
+
     vkDestroyCommandPool(device, commandPool, nullptr);
     vkDestroyDevice(device, nullptr);
 
@@ -387,18 +391,17 @@ void Device::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+     if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate buffer memory!");
     }
 
-    // Associate buffer with memory
+    // Bind the buffer to the allocated memory
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
 
 void Device::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-    // Allocate a temporary command buffer
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -408,22 +411,20 @@ void Device::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
     VkCommandBuffer commandBuffer;
     vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 
-    // Begin the command buffer
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // This command buffer is only used once
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-    // Specify the copy region
     VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0; // Optional
+    copyRegion.dstOffset = 0; // Optional
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    // End the command buffer
     vkEndCommandBuffer(commandBuffer);
 
-    // Submit the command buffer to the graphics queue
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
@@ -432,10 +433,45 @@ void Device::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
     vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(graphicsQueue);
 
-    // Clean up the temporary command buffer
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
+void Device::CreateVertexBuffer() 
+{
+    std::vector<Vertex> vertices = {
+        {{0.0f, 0.5f,  0.0f},{1.0f, 0.0f, 0.0f}},
+        {{-0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+        {{0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+    };
+
+    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    // Step 1: Create a staging buffer (host visible)
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                 stagingBuffer, stagingBufferMemory);
+
+    // Step 2: Map memory to CPU and copy vertex data
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, vertices.data(), (size_t) bufferSize);
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    // Step 3: Create the vertex buffer (device local)
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+                 vertexBuffer, vertexBufferMemory);
+
+    // Step 4: Copy data from the staging buffer to the vertex buffer
+    CopyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+    // Clean up the staging buffer
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
 
 
 void Device::CreateCommandBuffers()

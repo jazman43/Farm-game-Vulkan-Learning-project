@@ -65,10 +65,14 @@ VkResult SwapChain::AcpuireNextImage(uint32_t *imageIndex)
 
 VkResult SwapChain::SubmitCommandBuffer(const VkCommandBuffer *buffers, uint32_t *imageIndex)
 {
-    if (imagesInFlight[*imageIndex] != VK_NULL_HANDLE) {
+    
+    
+    if (imagesInFlight[*imageIndex] != VK_NULL_HANDLE) {//throws me to this line
     vkWaitForFences(device.GetDevice(), 1, &imagesInFlight[*imageIndex], VK_TRUE, UINT64_MAX);
     }
     imagesInFlight[*imageIndex] = inFlightFences[currentFrame];
+
+    vkResetFences(device.GetDevice(), 1, &inFlightFences[currentFrame]);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -94,7 +98,7 @@ VkResult SwapChain::SubmitCommandBuffer(const VkCommandBuffer *buffers, uint32_t
     }
     else
     {
-        std::cout << "Draw buffer submitted!\n";
+        //std::cout << "Draw buffer submitted!\n";//for debuging
     }
 
     VkPresentInfoKHR presentInfo{};
@@ -126,11 +130,12 @@ void SwapChain::CreateSwapChain()
     VkExtent2D extent = ChooseSwapExtent(swapChainSupport.capabilities);
 
 
-    uint32_t imageCount = swapChainSupport.capabilities.minImageCount +1;
-    if(swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-    {
+    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
         imageCount = swapChainSupport.capabilities.maxImageCount;
     }
+
+    
 
     VkSwapchainCreateInfoKHR swapChainCreateInfo{};
 
@@ -174,9 +179,12 @@ void SwapChain::CreateSwapChain()
 
     vkGetSwapchainImagesKHR(device.GetDevice(), swapChain, &imageCount, nullptr);
 
-    swapChainImages.resize(imageCount);//this gives error no match for call to ‘(std::vector<VkImage_T*>) (uint32_t&)’
+    swapChainImages.resize(imageCount);
+    
 
     vkGetSwapchainImagesKHR(device.GetDevice(), swapChain, &imageCount, swapChainImages.data());
+
+    imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
 
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;

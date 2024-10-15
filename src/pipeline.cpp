@@ -2,8 +2,6 @@
 
 
 
-
-
 Pipeline::Pipeline(Device &device,
                  std::string &fragPath,
                  std::string &vertPath,
@@ -54,7 +52,10 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vertFilePath, const std
 
 
 
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+     VkVertexInputBindingDescription bindingDescription{};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(Vertex);  // Correct stride size
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;  // Correct input rate
 
     VkVertexInputAttributeDescription attributeDescriptions[2];
 
@@ -62,26 +63,18 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vertFilePath, const std
     attributeDescriptions[0].location = 0;
     attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
     attributeDescriptions[0].offset = offsetof(Vertex, position);
-    //
 
     attributeDescriptions[1].binding = 0;
     attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;  // vec3 (3 floats)
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescriptions[1].offset = offsetof(Vertex, color);
 
-    VkVertexInputBindingDescription bindingDescription{};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);  // Size of each vertex
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-
-
-
-  vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexAttributeDescriptionCount = 1;
-  vertexInputInfo.vertexBindingDescriptionCount = 2;
-  vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
-  vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.vertexAttributeDescriptionCount = 2;  // Correct count for attributes
+    vertexInputInfo.vertexBindingDescriptionCount = 1;  // Only one binding
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
 
   VkGraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

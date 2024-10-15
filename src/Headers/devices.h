@@ -2,8 +2,9 @@
 
 #include "window.h"
 
-#include <vulkan/vulkan.h>
 
+#include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 
 #include <vector>
 #include <optional>
@@ -26,6 +27,11 @@ struct QueueFamilyIndices{
     {
         return graphicsFamily.has_value() && presentFamily.has_value();
     }
+};
+
+struct Vertex {
+    glm::vec3 position;
+    glm::vec3 color;    
 };
 
 
@@ -59,7 +65,12 @@ public:
     void CopyBuffer(VkBuffer srcBuffer, 
                     VkBuffer dstBuffer, 
                     VkDeviceSize size);
+
+    void CreateVertexBuffer();
     //
+
+    VkBuffer GetVertextBuffer(){    return vertexBuffer;    }
+
     QueueFamilyIndices FindPhysicalQueueFamilies() { return FindQueueFamilies(); }
 
     SwapChainSupportDetails GetQuerySwapChainSupport();
@@ -117,5 +128,8 @@ private:
 
 
     const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
+
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
 
 };

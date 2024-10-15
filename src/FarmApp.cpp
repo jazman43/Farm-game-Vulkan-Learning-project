@@ -97,7 +97,13 @@ void FarmApp::CreateCommandBuffers()
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
+    
+
     vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkBuffer vertexBuffers[] = {device.GetVertextBuffer()}; // Your vertex buffer
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
     pipeline->Bind(commandBuffers[i]);
     vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
@@ -118,7 +124,13 @@ void FarmApp::DrawFrame()
       throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    result = swapChain.SubmitCommandBuffer(&commandBuffers[imageIndex], &imageIndex);
+    //std::cout << "Image Index: " << imageIndex << " / " << swapChain.imageCount() << std::endl;
+    if (imageIndex >= swapChain.imageCount())
+    {
+      throw std::runtime_error("Invalid image index!");
+    }
+
+    result = swapChain.SubmitCommandBuffer(&commandBuffers[imageIndex], &imageIndex);//when we run this we get an error
     if (result != VK_SUCCESS) {
       throw std::runtime_error("failed to present swap chain image!");
     }

@@ -8,10 +8,7 @@
 #include <cassert>
 
 
-struct Vertex {
-    glm::vec3 position;
-    glm::vec3 color;    
-};
+
 
 struct PipelineConfigInfo {
   PipelineConfigInfo() = default;
