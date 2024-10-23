@@ -7,7 +7,11 @@
 #include <fstream>
 #include <cassert>
 
-
+enum PipeLineLayer
+{
+	UIShader,
+	GraphicsShader	
+};
 
 
 struct PipelineConfigInfo {
@@ -33,7 +37,7 @@ struct PipelineConfigInfo {
 class Pipeline
 {
 public:
-  Pipeline(Device &device, std::string &fragPath, std::string &vertPath, PipelineConfigInfo &pipelineInfo);
+  Pipeline(Device &device, std::string &fragPath, std::string &vertPath, PipelineConfigInfo &pipelineInfo, PipeLineLayer pipelineLayer);
   ~Pipeline();
 
   void Bind(VkCommandBuffer commandBuffer);
@@ -48,7 +52,7 @@ private:
   VkShaderModule vertShaderModule;
 
   void CreateGraphicsPipeline(const std::string& vertFilePath, const std::string& fragFilePath, const PipelineConfigInfo& configInfo);
-  
+  void CreateUIPipeline(const std::string& vertFilePath, const std::string& fragFilePath, const PipelineConfigInfo& configInfo);
   
 
   VkShaderModule CreateShaderModule(const std::vector<char>& code);

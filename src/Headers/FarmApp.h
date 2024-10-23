@@ -2,6 +2,7 @@
 
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 
 #include <iostream>
@@ -14,7 +15,7 @@
 #include "window.h"
 #include "swapChain.h"
 
-
+#include "Time.h"
 
 
 class FarmApp
@@ -38,12 +39,20 @@ private:
     SwapChain swapChain{device, window.GetExtent()};
     //pipeline 
     std::unique_ptr<Pipeline> pipeline;
+    std::unique_ptr<Pipeline> uiPipeline;
+
+
+    Time time;
+
 
     VkPipelineLayout pipelineLayout;
+    VkPipelineLayout uiPipelineLayout;
     std::vector<VkCommandBuffer> commandBuffers;
    
     void CreatePipelineLayout();
-    void CreatePipline();
+    void CreateUIPipelineLayout();
+    void CreatePipeline();
+    void CreateUIPipeline();
     void CreateCommandBuffers();   
 
     void DrawFrame();

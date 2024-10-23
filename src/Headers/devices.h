@@ -34,6 +34,11 @@ struct Vertex {
     glm::vec3 color;    
 };
 
+struct UIVertex{
+    glm::vec2 position;
+    glm::vec2 texCoord;
+};
+
 
 class Device
 {

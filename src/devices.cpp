@@ -183,9 +183,19 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device) {
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
+    
+
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-    for (const auto& extension : availableExtensions) {
+    for(auto extentions : availableExtensions)
+    {
+        //std::cout  << extentions.extensionName << "\n";
+    }
+
+    for (const auto& extension : availableExtensions)
+    {
+        
+
         requiredExtensions.erase(extension.extensionName);
     }
 
@@ -284,7 +294,7 @@ bool Device::CheckValidationLayerSupport(const std::vector<const char*>& validat
 std::vector<const char * > Device::GetRequiredExtensions()
 {
     //GLFW extensions 
-    uint32_t glfwExtensionCount  =0;
+    uint32_t glfwExtensionCount  = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
     std::vector<const char *> extensions(glfwExtensions , glfwExtensions + glfwExtensionCount);

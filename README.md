@@ -4,13 +4,15 @@ teaching my self the vulkan API :)
 ---
 ## Issues
 
+- device and other objects are being deleted out of order.
+
+- a pipeline Create info layout validation error just one :)
 ---
 ## Fixes
 
-- imagesInFlight var was not being intialised and would cause a segmentation fault in the SubmitCommandBuffer fuction by resizing it to our swapChainImages size we have fixed this issue.
-- the vkResetFences function was not added .
-- vetex buffer and vertex memory buffers were not being deleted.
 
 ---
 ## New Features
+
+- New UI shader's and UI pipeline as we work on a ui class :)
 

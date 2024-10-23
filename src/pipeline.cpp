@@ -5,9 +5,17 @@
 Pipeline::Pipeline(Device &device,
                  std::string &fragPath,
                  std::string &vertPath,
-                 PipelineConfigInfo &pipelineInfo) : device(device)
+                 PipelineConfigInfo &pipelineInfo,
+                 PipeLineLayer pipeLineLayer) : device(device)
 {
-    CreateGraphicsPipeline(vertPath, fragPath, pipelineInfo);
+    if(pipeLineLayer == PipeLineLayer::GraphicsShader)
+    {
+        CreateGraphicsPipeline(vertPath, fragPath, pipelineInfo);
+    }else if(pipeLineLayer == PipeLineLayer::UIShader)
+    {
+        CreateUIPipeline(vertPath, fragPath, pipelineInfo);
+    }
+    
 }
 
 
@@ -16,6 +24,92 @@ Pipeline::~Pipeline()
     vkDestroyShaderModule(device.GetDevice(), vertShaderModule, nullptr);
     vkDestroyShaderModule(device.GetDevice(), fragShaderModule, nullptr);
     vkDestroyPipeline(device.GetDevice(), graphicsPipeline, nullptr);
+}
+
+
+void Pipeline::CreateUIPipeline(const std::string& vertFilePath, const std::string& fragFilePath, const PipelineConfigInfo& configInfo)
+{
+    assert(configInfo.pipelineLayout != VK_NULL_HANDLE && "Cannot create graphics pipeline: no pipelineLayout provided in configInfo");
+    assert(configInfo.renderPass != VK_NULL_HANDLE && "Cannot create graphics pipeline: no renderPass provided in configInfo");
+
+    auto vertUIShaderCode = ReadFile(vertFilePath);
+    auto fragUIShaderCode = ReadFile(fragFilePath);
+
+    VkShaderModule vertShaderModule = CreateShaderModule(vertUIShaderCode);
+    VkShaderModule fragShaderModule = CreateShaderModule(fragUIShaderCode);
+
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+    // Vertex input for 2D UI elements (position and texture coordinates)
+    VkVertexInputBindingDescription bindingDescription{};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(UIVertex);  // Assuming 2D vertex with position and texCoord
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    VkVertexInputAttributeDescription attributeDescriptions[2];
+    attributeDescriptions[0].binding = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;  // 2D positions
+    attributeDescriptions[0].offset = offsetof(UIVertex, position);
+
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;  // Texture coordinates
+    attributeDescriptions[1].offset = offsetof(UIVertex, texCoord);
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.vertexAttributeDescriptionCount = 2;
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
+    pipelineInfo.pViewportState = &configInfo.viewportInfo;
+    pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
+    pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
+    pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
+
+    // Disable depth testing for UI
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_FALSE;
+    depthStencil.depthWriteEnable = VK_FALSE;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+
+    pipelineInfo.layout = configInfo.pipelineLayout;
+    pipelineInfo.renderPass = configInfo.renderPass;
+    pipelineInfo.subpass = configInfo.subpass;
+    pipelineInfo.basePipelineIndex = -1;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+    
+    
+
+    if (vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create UI graphics pipeline!");
+    }
+
+    // Clean up shader modules after pipeline creation
+    vkDestroyShaderModule(device.GetDevice(), vertShaderModule, nullptr);
+    vkDestroyShaderModule(device.GetDevice(), fragShaderModule, nullptr);
 }
 
 
@@ -28,31 +122,32 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vertFilePath, const std
       configInfo.renderPass != VK_NULL_HANDLE &&
       "Cannot create graphics pipeline: no renderPass provided in configInfo");
 
-  auto vertCode = ReadFile(vertFilePath);
-  auto fragCode = ReadFile(fragFilePath);
+    auto vertCode = ReadFile(vertFilePath);
+    auto fragCode = ReadFile(fragFilePath);
 
-  vertShaderModule = CreateShaderModule(vertCode);
-  fragShaderModule = CreateShaderModule(fragCode);
+    vertShaderModule = CreateShaderModule(vertCode);
+    fragShaderModule = CreateShaderModule(fragCode);
 
-  VkPipelineShaderStageCreateInfo shaderStages[2];
-  shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-  shaderStages[0].module = vertShaderModule;
-  shaderStages[0].pName = "main";
-  shaderStages[0].flags = 0;
-  shaderStages[0].pNext = nullptr;
-  shaderStages[0].pSpecializationInfo = nullptr;
-  shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  shaderStages[1].module = fragShaderModule;
-  shaderStages[1].pName = "main";
-  shaderStages[1].flags = 0;
-  shaderStages[1].pNext = nullptr;
+    VkPipelineShaderStageCreateInfo shaderStages[2];
+    shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+    shaderStages[0].module = vertShaderModule;
+    shaderStages[0].pName = "main";
+    shaderStages[0].flags = 0;
+    shaderStages[0].pNext = nullptr;
+    shaderStages[0].pSpecializationInfo = nullptr;
+
+    shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    shaderStages[1].module = fragShaderModule;
+    shaderStages[1].pName = "main";
+    shaderStages[1].flags = 0;
+    shaderStages[1].pNext = nullptr;
     shaderStages[1].pSpecializationInfo = nullptr;
 
 
 
-     VkVertexInputBindingDescription bindingDescription{};
+    VkVertexInputBindingDescription bindingDescription{};
     bindingDescription.binding = 0;
     bindingDescription.stride = sizeof(Vertex);  // Correct stride size
     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;  // Correct input rate
@@ -76,35 +171,37 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vertFilePath, const std
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
 
-  VkGraphicsPipelineCreateInfo pipelineInfo{};
-  pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  pipelineInfo.stageCount = 2;
-  pipelineInfo.pStages = shaderStages;
-  pipelineInfo.pVertexInputState = &vertexInputInfo;
-  pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
-  pipelineInfo.pViewportState = &configInfo.viewportInfo;
-  pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
-  pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
-  pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
-  pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
-  pipelineInfo.pDynamicState = nullptr;
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
+    pipelineInfo.pViewportState = &configInfo.viewportInfo;
+    pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
+    pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
+    pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
+    pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
+    pipelineInfo.pDynamicState = nullptr;
 
-  pipelineInfo.layout = configInfo.pipelineLayout;
-  pipelineInfo.renderPass = configInfo.renderPass;
-  pipelineInfo.subpass = configInfo.subpass;
+    pipelineInfo.layout = configInfo.pipelineLayout;
+    pipelineInfo.renderPass = configInfo.renderPass;
+    pipelineInfo.subpass = configInfo.subpass;
 
-  pipelineInfo.basePipelineIndex = -1;
-  pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    pipelineInfo.basePipelineIndex = -1;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-  if (vkCreateGraphicsPipelines(
+    
+
+    if (vkCreateGraphicsPipelines(
           device.GetDevice(),
           VK_NULL_HANDLE,
           1,
           &pipelineInfo,
           nullptr,
           &graphicsPipeline) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create graphics pipeline");
-  }
+        throw std::runtime_error("failed to create graphics pipeline");
+    }
 }
 
 

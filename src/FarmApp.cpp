@@ -4,7 +4,9 @@
 FarmApp::FarmApp()
 {
     CreatePipelineLayout();
-    CreatePipline();
+    CreateUIPipelineLayout();
+    CreatePipeline();
+    CreateUIPipeline();
     CreateCommandBuffers();
 }
 
@@ -17,13 +19,53 @@ void FarmApp::Run()
 {
     while (!window.ShouldClose())
     {
-        glfwPollEvents();
+		time.UpdateDeltaTime();
+      	glfwPollEvents();
         DrawFrame();
     }
 
     vkDeviceWaitIdle(device.GetDevice());
     
 }
+
+
+void FarmApp::CreateUIPipelineLayout()
+{
+	// Create the pipeline layout
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(glm::mat4);  // For orthographic projection matrix
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.pushConstantRangeCount = 1;
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+
+	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding = 0;
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &samplerLayoutBinding;
+
+	VkDescriptorSetLayout descriptorSetLayout;
+	if (vkCreateDescriptorSetLayout(device.GetDevice(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+    	throw std::runtime_error("Failed to create descriptor set layout!");
+	}
+
+
+    if (vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutInfo, nullptr, &uiPipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create UI pipeline layout!");
+    }
+}
+
 
 void FarmApp::CreatePipelineLayout()
 {
@@ -37,43 +79,70 @@ void FarmApp::CreatePipelineLayout()
           VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline layout!");
     }
+
+	
 }
 
 
-void FarmApp::CreatePipline()
+
+
+void FarmApp::CreateUIPipeline()
 {
-  PipelineConfigInfo pipelineConfig{};
-  Pipeline::DefaulfPipelineConfigInfo(
+	PipelineConfigInfo pipelineConfig{};
+	Pipeline::DefaulfPipelineConfigInfo(
+		pipelineConfig,
+		swapChain.width(),
+		swapChain.height()
+	);
+	pipelineConfig.renderPass = swapChain.getRenderPass();
+	pipelineConfig.pipelineLayout = uiPipelineLayout;
+
+	std::string vertPath = "../src/Shaders/vert_UI_Shader.vert.spv";
+    std::string fragPath = "../src/Shaders/frag_UI_Shader.frag.spv";
+
+	uiPipeline = std::make_unique<Pipeline>(
+		device,
+		fragPath, 
+		vertPath, 
+		pipelineConfig,
+		PipeLineLayer::UIShader);
+}
+
+void FarmApp::CreatePipeline()
+{
+  	PipelineConfigInfo pipelineConfig{};
+  	Pipeline::DefaulfPipelineConfigInfo(
       pipelineConfig,
       swapChain.width(),
       swapChain.height());
-  pipelineConfig.renderPass = swapChain.getRenderPass();
-  pipelineConfig.pipelineLayout = pipelineLayout;
+  	pipelineConfig.renderPass = swapChain.getRenderPass();
+  	pipelineConfig.pipelineLayout = pipelineLayout;
 
-    std::string vertPath = "/media/jared/Projects/Vulkan_Projects/Farm_Project/Farm_game_Vulkan_Learning_project/src/Shaders/vert_gen_shader.vert.spv";
-    std::string fragPath = "/media/jared/Projects/Vulkan_Projects/Farm_Project/Farm_game_Vulkan_Learning_project/src/Shaders/frag_gen_shader.frag.spv";
+    std::string vertPath = "../src/Shaders/vert_gen_shader.vert.spv";
+    std::string fragPath = "../src/Shaders/frag_gen_shader.frag.spv";
 
-  pipeline = std::make_unique<Pipeline>(
+  	pipeline = std::make_unique<Pipeline>(
       device,
       fragPath,
       vertPath,
-      pipelineConfig);
+      pipelineConfig,
+	  PipeLineLayer::GraphicsShader);
 }
 
 void FarmApp::CreateCommandBuffers()
 {
-  commandBuffers.resize(swapChain.imageCount());
+  	commandBuffers.resize(swapChain.imageCount());
 
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = device.GetCommandPool();
-  allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
+  	VkCommandBufferAllocateInfo allocInfo{};
+  	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  	allocInfo.commandPool = device.GetCommandPool();
+  	allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-  if (vkAllocateCommandBuffers(device.GetDevice(), &allocInfo, commandBuffers.data()) !=
+  	if (vkAllocateCommandBuffers(device.GetDevice(), &allocInfo, commandBuffers.data()) !=
       VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate command buffers!");
-  }
+    	throw std::runtime_error("failed to allocate command buffers!");
+  	}
 
   for (int i = 0; i < commandBuffers.size(); i++) {
     VkCommandBufferBeginInfo beginInfo{};
@@ -97,7 +166,8 @@ void FarmApp::CreateCommandBuffers()
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
-    
+    glm::mat4 orthoMatrix = glm::ortho(0.0f, (float)window.GetWindowWidth(), 0.0f, (float)window.GetWindowHeight());
+	vkCmdPushConstants(commandBuffers[i], uiPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(orthoMatrix), &orthoMatrix);
 
     vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -130,7 +200,9 @@ void FarmApp::DrawFrame()
       throw std::runtime_error("Invalid image index!");
     }
 
-    result = swapChain.SubmitCommandBuffer(&commandBuffers[imageIndex], &imageIndex);//when we run this we get an error
+	//std::cout << "FPS: " << time.GetFPS() << "\n";
+
+    result = swapChain.SubmitCommandBuffer(&commandBuffers[imageIndex], &imageIndex);
     if (result != VK_SUCCESS) {
       throw std::runtime_error("failed to present swap chain image!");
     }
