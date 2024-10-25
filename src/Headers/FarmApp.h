@@ -9,12 +9,16 @@
 #include <memory>
 #include <string.h>
 #include <array>
-
+//Create render 
 #include "devices.h"
 #include "pipeline.h"
 #include "window.h"
 #include "swapChain.h"
+//object perent classes
+#include "UIObject.h"
 
+
+//util classes
 #include "Time.h"
 
 
@@ -44,6 +48,7 @@ private:
 
     Time time;
 
+    VkDescriptorSetLayout descriptorSetLayout;
 
     VkPipelineLayout pipelineLayout;
     VkPipelineLayout uiPipelineLayout;
@@ -57,6 +62,7 @@ private:
 
     void DrawFrame();
 
-   
+    std::unique_ptr<UIObject> uiObject;
+    
 };
 

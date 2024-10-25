@@ -50,6 +50,8 @@ private:
   VkPipeline graphicsPipeline;
   VkShaderModule fragShaderModule;
   VkShaderModule vertShaderModule;
+  VkShaderModule vertUIShaderModule;
+  VkShaderModule fragUIShaderModule;
 
   void CreateGraphicsPipeline(const std::string& vertFilePath, const std::string& fragFilePath, const PipelineConfigInfo& configInfo);
   void CreateUIPipeline(const std::string& vertFilePath, const std::string& fragFilePath, const PipelineConfigInfo& configInfo);

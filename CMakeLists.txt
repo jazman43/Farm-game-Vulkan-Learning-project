@@ -5,9 +5,11 @@ project(Project_Farm VERSION 0.1.0 LANGUAGES C CXX)
 file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 file(GLOB_RECURSE HEADERS ${PROJECT_SOURCE_DIR}/src/Headers/*.h)
 
-add_executable(Project_Farm ${HEADERS} ${SOURCES})
+add_executable(Project_Farm ${HEADERS} ${SOURCES}  ${PROJECT_SOURCE_DIR}/src/Headers/UIHeaders/DebugUI.h)
 
 add_dependencies(Project_Farm Shaders)
+
+target_include_directories(Project_Farm PRIVATE ${PROJECT_SOURCE_DIR}/src/Headers/UIHeaders)
 
 # Find Vulkan and GLFW
 find_package(Vulkan REQUIRED)

@@ -4,15 +4,17 @@ teaching my self the vulkan API :)
 ---
 ## Issues
 
-- device and other objects are being deleted out of order.
+- Segmentation fault crashes programe while we work towards creating our UI object class and impermtions.
 
-- a pipeline Create info layout validation error just one :)
+
 ---
 ## Fixes
-
+- moving the destory shader modules to the bottom for there create Pipeeline function fixes this as we where destorying them twice.
 
 ---
 ## New Features
 
-- New UI shader's and UI pipeline as we work on a ui class :)
+- new UIObject class this is intended to be our perent class to each ui object with commen function to be used in each child class.
+
+- added first ui child class DebugUI class this will b used for testing and debuging.
 

@@ -21,9 +21,15 @@ Pipeline::Pipeline(Device &device,
 
 Pipeline::~Pipeline()
 {
-    vkDestroyShaderModule(device.GetDevice(), vertShaderModule, nullptr);
-    vkDestroyShaderModule(device.GetDevice(), fragShaderModule, nullptr);
-    vkDestroyPipeline(device.GetDevice(), graphicsPipeline, nullptr);
+    
+    // Clean up shader modules after pipeline creation
+    
+    if(graphicsPipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(device.GetDevice(), graphicsPipeline, nullptr);
+    }
+    
+    
 }
 
 
@@ -35,19 +41,19 @@ void Pipeline::CreateUIPipeline(const std::string& vertFilePath, const std::stri
     auto vertUIShaderCode = ReadFile(vertFilePath);
     auto fragUIShaderCode = ReadFile(fragFilePath);
 
-    VkShaderModule vertShaderModule = CreateShaderModule(vertUIShaderCode);
-    VkShaderModule fragShaderModule = CreateShaderModule(fragUIShaderCode);
+    vertUIShaderModule = CreateShaderModule(vertUIShaderCode);
+    fragUIShaderModule = CreateShaderModule(fragUIShaderCode);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.module = vertUIShaderModule;
     vertShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.module = fragUIShaderModule;
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
@@ -107,9 +113,15 @@ void Pipeline::CreateUIPipeline(const std::string& vertFilePath, const std::stri
         throw std::runtime_error("Failed to create UI graphics pipeline!");
     }
 
-    // Clean up shader modules after pipeline creation
-    vkDestroyShaderModule(device.GetDevice(), vertShaderModule, nullptr);
-    vkDestroyShaderModule(device.GetDevice(), fragShaderModule, nullptr);
+    if(vertUIShaderModule != VK_NULL_HANDLE)
+    {
+        vkDestroyShaderModule(device.GetDevice(), vertUIShaderModule, nullptr);
+    }
+    if(fragUIShaderModule != VK_NULL_HANDLE)
+    {
+        vkDestroyShaderModule(device.GetDevice(), fragUIShaderModule, nullptr);
+    }
+    
 }
 
 
@@ -201,6 +213,15 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vertFilePath, const std
           nullptr,
           &graphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline");
+    }
+
+    if (vertShaderModule != VK_NULL_HANDLE) 
+    {
+        vkDestroyShaderModule(device.GetDevice(), vertShaderModule, nullptr);
+    }
+    if(fragShaderModule != VK_NULL_HANDLE)
+    {
+        vkDestroyShaderModule(device.GetDevice(), fragShaderModule, nullptr);
     }
 }
 
