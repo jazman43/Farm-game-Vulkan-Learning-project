@@ -4,7 +4,7 @@ teaching my self the vulkan API :)
 ---
 ## Issues
 
-- Segmentation fault crashes programe while we work towards creating our UI object class and impermtions.
+- Segmentation fault crashes program this is being worked on while we work towards creating our UI object class and implementations.
 
 
 ---
